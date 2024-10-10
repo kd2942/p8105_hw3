@@ -1,5 +1,109 @@
 ---
 title: "p8105 Hw#3"
-output: html_document
+author: "Kaylin De Silva"
+date: 10-16-2024
+output: github_document
 ---
+**Problem 2**
+
+#loading libraries
+The following chunk loads the tidyverse and dplyr libraries. 
+```{r}
+library(tidyverse)
+library(dplyr)
+```
+
+#loading and cleaning data set
+The following chunk uses a relative path to load the two data sets for this problem, uses the head function to take a look at the data, and then uses a function from the janitor package to clean up variable names.
+```{r}
+accel_df = read_csv(file = "./nhanes_accel.csv")
+covar_df = read_csv(file = "./nhanes_covar.csv")
+
+head(accel_df)
+head(covar_df)
+
+accel_df = janitor :: clean_names(accel_df)
+covar_df = janitor :: clean_names(covar_df)
+```
+
+#renaming variables in covar_df
+The following chunk renames the variables to appropriately capture what the data is describing in covar, while also dropping NA and removing the first row.
+```{r}
+colnames(covar_df)
+clean_covar_df = covar_df|>
+  drop_na()|>
+    rename(seqn = x1, sex = x1_male, age = x3, bmi = x4, education = x1_less_than_high_school)|>
+        slice(-1) |>
+  mutate(
+      sex= as.numeric(sex),
+      education = as.numeric(education))|>
+      mutate(
+        sex=
+            case_match(
+             sex,
+              1 ~ "male",
+              2 ~ "female"),
+        education=
+            case_match(
+             education,
+              1 ~ "Less than high school",
+              2 ~ "High school equivalent",
+              3 ~ "More than high school"),
+          ) |>
+  mutate_all(as.character)
+
+    
+clean_covar_df
+```
+
+#categorizing SEQN variable in accel_df into a chr so that data sets can be merged
+The following chunk drops NA for the accel_df and mutates all variables to character variables so they are non-numeric and the dataset can be merged with the covar_df.
+```{r}
+colnames(accel_df)
+clean_accel_df = accel_df |>
+      drop_na()|>
+        mutate_all(as.character)
+clean_accel_df
+```
+
+#merging data sets
+The following chunk merges the data set by variable SEQN and filters out observations where age is less than 21. 
+```{r}
+nhanes_df = inner_join(clean_covar_df, clean_accel_df, by = "seqn") |>
+  filter(
+      age>=21
+  )
+nhanes_df
+```
+
+#creating a table for sex and education
+The following chunk creates a reader-friendly table for the number of men and women in each education category.
+```{r}
+sex_education_df = nhanes_df |>
+  select(education,sex) |>
+  group_by(education, sex) |>
+  count()
+
+knitr::kable(sex_education_df)
+```
+
+#creating a visualization  
+The following chunk creates a data visualization for the age distributions for men and women in each education category.
+```{r}
+boxplot_df = nhanes_df |>
+  select (education, sex, age) |>
+  mutate(
+    sex = as.factor(sex),
+    education = as.factor(education))
+
+ggplot(boxplot_df, aes(x = sex, y = age)) + 
+  geom_boxplot(binwidth = 20) + 
+  facet_wrap(~education)
+```
+
+#creating an aggregate variable 
+```{r eval=FALSE}
+mutate(nhanes_df, aggregate_activity = sum(min1 : min1440))
+nhanes_df_aggregate$aggregate_activity
+```
 
