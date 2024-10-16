@@ -77,7 +77,7 @@ nhanes_df
 ```
 
 #creating a table for sex and education
-The following chunk creates a reader-friendly table for the number of men and women in each education category.
+The following chunk creates a reader-friendly table for the number of men and women in each education category. 
 ```{r}
 sex_education_df = nhanes_df |>
   select(education,sex) |>
@@ -86,24 +86,77 @@ sex_education_df = nhanes_df |>
 
 knitr::kable(sex_education_df)
 ```
+The table highlights that there are more males and females in the "More than High School" education category than any other category. The least amount of female participants can be found in the "High School Equivalent" category, while the least amount of male participants can be found in the "Less than High School" category. 
 
 #creating a visualization  
-The following chunk creates a data visualization for the age distributions for men and women in each education category.
+The following chunk creates a data visualization for the age distributions for men and women in each education category.Variables sex and education are mutated into factor variables and age is mutated into a numeric variable in order to create a visualization. A ggplot function is used to create a boxplot of sex and age and a three-panel plot is created based on the variable "education" through facet_wrap.  
 ```{r}
 boxplot_df = nhanes_df |>
   select (education, sex, age) |>
   mutate(
     sex = as.factor(sex),
-    education = as.factor(education))
+    education = as.factor(education),
+    age = as.numeric(age))
 
 ggplot(boxplot_df, aes(x = sex, y = age)) + 
-  geom_boxplot(binwidth = 20) + 
+  geom_boxplot() + 
   facet_wrap(~education)
 ```
+The box plots highlight that the median age of both female and male participants is lowest for the "More than High School" category. For female participants, the median age is relatively similar amongst those in the "High School Equivalent" and "Less than High School" categories, but the deviation is greater in the "High School Equivalent" category. For male participants, the median age is higher amongst those in the "Less than High School" category. 
 
-#creating an aggregate variable 
-```{r eval=FALSE}
-mutate(nhanes_df, aggregate_activity = sum(min1 : min1440))
-nhanes_df_aggregate$aggregate_activity
+#creating an aggregate variable and a plot comparing it to age for men and women across education levels 
+The following chunk creates an aggregate activity variable by grouping observations by seqn and summing their values across min1-min1440. This variable was added to the current data set and age was mutated into a numeric variable to support its use in the following ggplot. The ggplot plots aggregate activity as a function of age, with colors indicating the sex of the participant and three panels for the three education levels.
+```{r}
+aggregate_activity_df = nhanes_df |>
+  group_by(seqn) |>
+  summarize(aggregate_activity = sum(min1:min1440, na.rm = TRUE), .groups = 'drop')
+
+nhanes_df_aggregate <- nhanes_df |>
+  left_join(aggregate_activity_df, by = "seqn") |>
+  mutate(
+    age = as.numeric(age))
+
+nhanes_df_aggregate |> 
+  ggplot(aes(y = aggregate_activity, x = age)) + 
+  geom_point(aes(color = sex), alpha = .5) +
+  geom_smooth(se = FALSE) +
+  facet_wrap(.~education)
 ```
+Comparing the plots and their trendlines, it is apparent that across education levels aggregate activity generally decreases as age increases. Amongst participants in the "More than High School" education category, aggregate activity was highest on average at 40 years of age, while it was highest around 20 years of age for the "High School Equivalent". The trend lines reflect a more consistent relationship between age and aggregate activity amongst the "High School Equivalent" group. 
+
+#24 hour activity time courses
+The following chunk pivots the data in order to plot MIM as a function of time by the minute. Creating a time variable and dropping the prefix "min" allows for time to be used in the ggplot(after mutating it to a numeric variable). After grouping observations by sex, a variable called "centered_MIM" was created to make a more consolidated graph (MIM values originally had a large spread). This pivoted dataset was plotted (centered_MIM as a function of time[min]) with color differences to indicate the two sex categories and three panels for the education levels. The x axis scale was broken up into four 8 hour intervals so the x-axis was not cluttered with the original 1440 x-values. 
+```{r}
+nhanes_df_pivot = nhanes_df |>
+  pivot_longer(
+    min1:min1440,
+    names_to = "time",
+    names_prefix = "min",
+    values_to = "MIM") |>
+  group_by(sex) |>
+  mutate(
+    MIM = as.numeric(MIM),
+    time = as.numeric(time))|>
+  mutate(
+    mean_MIM = mean(MIM, na.rm = TRUE),
+    centered_MIM = MIM - mean_MIM) |>
+  ungroup()
+    
+
+nhanes_df_pivot
+
+nhanes_df_pivot|>
+  ggplot(aes(x = time, y = centered_MIM)) + 
+  geom_point(aes(color = sex), alpha = .05, size = .5) +
+  facet_wrap(.~education) +
+   scale_x_continuous(
+    breaks = c(0, 480, 960, 1440)) +
+    geom_smooth(aes(color=sex),se = FALSE) 
+  labs(x = "Time (minutes)", y = "Centered MIM", color = "Sex")
+```
+The trendlines reflect a lower amount activity in the first 8 hours of the day (considering this is from 12:00am to 8:00am, this is reasonable). The highest amount of activity for all three education levels is between 8:00am and 4:00pm. Though men and women vary slightly in their activity levels across education categories, their trends are relatively similar within education categories. 
+
+**Problem 3**
+
+
 
