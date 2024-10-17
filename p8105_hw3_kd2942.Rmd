@@ -7,14 +7,13 @@ output: github_document
 **Problem 2**
 
 #loading libraries
-The following chunk loads the tidyverse and dplyr libraries. 
 ```{r}
 library(tidyverse)
 library(dplyr)
 ```
+This chunk loads the tidyverse and dplyr libraries. 
 
 #loading and cleaning data set
-The following chunk uses a relative path to load the two data sets for this problem, uses the head function to take a look at the data, and then uses a function from the janitor package to clean up variable names.
 ```{r}
 accel_df = read_csv(file = "./nhanes_accel.csv")
 covar_df = read_csv(file = "./nhanes_covar.csv")
@@ -25,9 +24,9 @@ head(covar_df)
 accel_df = janitor :: clean_names(accel_df)
 covar_df = janitor :: clean_names(covar_df)
 ```
+This chunk uses a relative path to load the two data sets for this problem, uses the head function to take a look at the data, and then uses a function from the janitor package to clean up variable names.
 
 #renaming variables in covar_df
-The following chunk renames the variables to appropriately capture what the data is describing in covar, while also dropping NA and removing the first row.
 ```{r}
 colnames(covar_df)
 clean_covar_df = covar_df|>
@@ -55,9 +54,9 @@ clean_covar_df = covar_df|>
     
 clean_covar_df
 ```
+This chunk renames the variables to appropriately capture what the data is describing in covar, while also dropping NA and removing the first row. It also mutates variables sex and education into numeric variables so they can be reassigned character names, and then mutates them back to character variables to maintain consistency.
 
 #categorizing SEQN variable in accel_df into a chr so that data sets can be merged
-The following chunk drops NA for the accel_df and mutates all variables to character variables so they are non-numeric and the dataset can be merged with the covar_df.
 ```{r}
 colnames(accel_df)
 clean_accel_df = accel_df |>
@@ -65,9 +64,9 @@ clean_accel_df = accel_df |>
         mutate_all(as.character)
 clean_accel_df
 ```
+This chunk drops NA for the accel_df and mutates all variables to character variables so they are non-numeric and the dataset can be merged with the covar_df.
 
 #merging data sets
-The following chunk merges the data set by variable SEQN and filters out observations where age is less than 21. 
 ```{r}
 nhanes_df = inner_join(clean_covar_df, clean_accel_df, by = "seqn") |>
   filter(
@@ -75,9 +74,9 @@ nhanes_df = inner_join(clean_covar_df, clean_accel_df, by = "seqn") |>
   )
 nhanes_df
 ```
+This chunk merges the data set by variable SEQN and filters out observations where age is less than 21. 
 
 #creating a table for sex and education
-The following chunk creates a reader-friendly table for the number of men and women in each education category. 
 ```{r}
 sex_education_df = nhanes_df |>
   select(education,sex) |>
@@ -86,10 +85,11 @@ sex_education_df = nhanes_df |>
 
 knitr::kable(sex_education_df)
 ```
+This chunk creates a reader-friendly table for the number of men and women in each education category. 
+
 The table highlights that there are more males and females in the "More than High School" education category than any other category. The least amount of female participants can be found in the "High School Equivalent" category, while the least amount of male participants can be found in the "Less than High School" category. 
 
 #creating a visualization  
-The following chunk creates a data visualization for the age distributions for men and women in each education category.Variables sex and education are mutated into factor variables and age is mutated into a numeric variable in order to create a visualization. A ggplot function is used to create a boxplot of sex and age and a three-panel plot is created based on the variable "education" through facet_wrap.  
 ```{r}
 boxplot_df = nhanes_df |>
   select (education, sex, age) |>
@@ -102,30 +102,11 @@ ggplot(boxplot_df, aes(x = sex, y = age)) +
   geom_boxplot() + 
   facet_wrap(~education)
 ```
-The box plots highlight that the median age of both female and male participants is lowest for the "More than High School" category. For female participants, the median age is relatively similar amongst those in the "High School Equivalent" and "Less than High School" categories, but the deviation is greater in the "High School Equivalent" category. For male participants, the median age is higher amongst those in the "Less than High School" category. 
+This chunk creates a data visualization for the age distributions for men and women in each education category.Variables sex and education are mutated into factor variables and age is mutated into a numeric variable in order to create a visualization. A ggplot function is used to create a boxplot of sex and age and a three-panel plot is created based on the variable "education" through facet_wrap. 
+
+The box plots highlight that the median age of both female and male participants is lowest for the "More than High School" category. For female participants, the median age is relatively similar amongst those in the "High School Equivalent" and "Less than High School" categories, but the deviation is greater in the "High School Equivalent" category. For male participants, the median age is higher amongst those in the "Less than High School" category compared to the "High School Equivalent" category. The distribution of age for both men and females in the "More than High School" category is right-skewed, while the distribution for both sexes in the other two education categories is left-skewed (except for males in "High School Equivalent", which is relatively equally distributed).
 
 #creating an aggregate variable and a plot comparing it to age for men and women across education levels 
-The following chunk creates an aggregate activity variable by grouping observations by seqn and summing their values across min1-min1440. This variable was added to the current data set and age was mutated into a numeric variable to support its use in the following ggplot. The ggplot plots aggregate activity as a function of age, with colors indicating the sex of the participant and three panels for the three education levels.
-```{r}
-aggregate_activity_df = nhanes_df |>
-  group_by(seqn) |>
-  summarize(aggregate_activity = sum(min1:min1440, na.rm = TRUE), .groups = 'drop')
-
-nhanes_df_aggregate <- nhanes_df |>
-  left_join(aggregate_activity_df, by = "seqn") |>
-  mutate(
-    age = as.numeric(age))
-
-nhanes_df_aggregate |> 
-  ggplot(aes(y = aggregate_activity, x = age)) + 
-  geom_point(aes(color = sex), alpha = .5) +
-  geom_smooth(se = FALSE) +
-  facet_wrap(.~education)
-```
-Comparing the plots and their trendlines, it is apparent that across education levels aggregate activity generally decreases as age increases. Amongst participants in the "More than High School" education category, aggregate activity was highest on average at 40 years of age, while it was highest around 20 years of age for the "High School Equivalent". The trend lines reflect a more consistent relationship between age and aggregate activity amongst the "High School Equivalent" group. 
-
-#24 hour activity time courses
-The following chunk pivots the data in order to plot MIM as a function of time by the minute. Creating a time variable and dropping the prefix "min" allows for time to be used in the ggplot(after mutating it to a numeric variable). After grouping observations by sex, a variable called "centered_MIM" was created to make a more consolidated graph (MIM values originally had a large spread). This pivoted dataset was plotted (centered_MIM as a function of time[min]) with color differences to indicate the two sex categories and three panels for the education levels. The x axis scale was broken up into four 8 hour intervals so the x-axis was not cluttered with the original 1440 x-values. 
 ```{r}
 nhanes_df_pivot = nhanes_df |>
   pivot_longer(
@@ -136,16 +117,38 @@ nhanes_df_pivot = nhanes_df |>
   group_by(sex) |>
   mutate(
     MIM = as.numeric(MIM),
-    time = as.numeric(time))|>
+    time = as.numeric(time))
+
+aggregate_activity_df = nhanes_df_pivot |>
+  group_by(seqn) |>
+  summarize(aggregate_activity = sum(MIM, na.rm = TRUE), .groups = 'drop')
+
+view(aggregate_activity_df)
+
+nhanes_df_aggregate <- nhanes_df |>
+  left_join(aggregate_activity_df, by = "seqn") |>
   mutate(
+    age = as.numeric(age))
+
+view(nhanes_df_aggregate)
+
+nhanes_df_aggregate |> 
+  ggplot(aes(y = aggregate_activity, x = age)) + 
+  geom_point(aes(color = sex), alpha = .5) +
+  geom_smooth(se = FALSE) +
+  facet_wrap(.~education)
+```
+This chunk creates a pivoted data based on the MIM observations for columns min1:min1440 (also for use in the following chunk). The MIM observations were summed to create an aggregate activity variable. This variable was re-grouped by SEQN and merged to the current data set, and age was mutated into a numeric variable to support its use in the following ggplot. The ggplot plots aggregate activity as a function of age, with colors indicating the sex of the participant and three panels for the three education levels. 
+
+Comparing the plots and their trend lines, it is apparent that across education levels aggregate activity generally decreases as age increases. The most notable exception is the steady increase in activity from ages 20-40 for the "High School Equivalent" group (which could be attributed to the outlier around age 30). Among participants in the "More than High School" education category, aggregate activity was highest on average at 50 years of age, while it was highest on average around 40 years of age for the "High School Equivalent" category. For the "Less than High School category", it was highest on average at 20 years of age. The trend lines reflect a more consistent relationship between age and aggregate activity amongst the  "More than High School " and "Less than High School" categories (though these lines are still not considered linear).
+
+#24 hour activity time courses
+```{r}
+nhanes_df_pivot|>
+    mutate(
     mean_MIM = mean(MIM, na.rm = TRUE),
     centered_MIM = MIM - mean_MIM) |>
-  ungroup()
-    
-
-nhanes_df_pivot
-
-nhanes_df_pivot|>
+  ungroup() |>
   ggplot(aes(x = time, y = centered_MIM)) + 
   geom_point(aes(color = sex), alpha = .05, size = .5) +
   facet_wrap(.~education) +
@@ -154,9 +157,90 @@ nhanes_df_pivot|>
     geom_smooth(aes(color=sex),se = FALSE) 
   labs(x = "Time (minutes)", y = "Centered MIM", color = "Sex")
 ```
+After grouping observations by sex, a variable called "centered_MIM" was created to make a more consolidated graph (MIM values originally had a large spread). This pivoted dataset was plotted (centered_MIM as a function of time[min]) with color differences to indicate the two sex categories and three panels for the education levels. The x axis scale was broken up into four 8 hour intervals so the x-axis was not cluttered with the original 1440 x-values. 
+
 The trendlines reflect a lower amount activity in the first 8 hours of the day (considering this is from 12:00am to 8:00am, this is reasonable). The highest amount of activity for all three education levels is between 8:00am and 4:00pm. Though men and women vary slightly in their activity levels across education categories, their trends are relatively similar within education categories. 
 
 **Problem 3**
+```{r}
+jan2020 = 
+  read_csv( "./citibike/Jan 2020 Citi.csv", na = c("NA", "", ".")) |>
+  mutate(monthyear = "Jan_2020")
+
+july2020 = 
+  read_csv( "./citibike/July 2020 Citi.csv", na = c("NA", "", ".")) |>
+  mutate(monthyear = "July_2020")
+
+jan2024 = 
+  read_csv( "./citibike/Jan 2024 Citi.csv", na = c("NA", "", ".")) |>
+  mutate(monthyear = "Jan_2024")
+
+july2024 = 
+  read_csv( "./citibike/July 2024 Citi.csv", na = c("NA", "", ".")) |>
+  mutate(monthyear = "July_2024")
+
+head(jan2020)
+head(july2020)
+head(jan2024)
+head(july2024)
+
+citi_df = 
+  bind_rows(jan2020, july2020, jan2024, july2024) |>
+  janitor :: clean_names() |>
+  drop_na()
+
+head(citi_df)
+```
+This chunk creates a new column in each dataset (after importing it) to designate the monthyear that each dataset represents.Then a new dataset was created by combining the 4 datasets. 
+
+#Table for total number of rides in each combination of year and month separating casual riders and members
+```{r}
+rides_number_df = citi_df |>
+  select(monthyear, member_casual) |>
+  group_by(monthyear, member_casual) |>
+  count()
+
+knitr::kable(rides_number_df, caption = "Rides by Month/Year for Casual Riders and Members")
+```
+The resulting table highlights a general increase in the total number of rides as time progressed amongst Citi bike members. Casual riders also saw an increase in total number of rides as time progressed. The number of total rides by Citi bike members has consistently be greater than the number of rides by casual riders.
+ 
+#Top 5 most popular stations in July 2024
+```{r}
+stations_july2024 = july2024 |>
+  count(start_station_name) |>
+  slice_max(n, n = 5, with_ties = FALSE) |>
+  arrange(desc(n))
 
 
+knitr :: kable(stations_july2024, caption = "Top 5 Most Popular Stations in July 2024") 
+```
+The resulting table highlights the top 5 most popular stations in July 2024 by counting the number of times the station is mentioned and keeping the 5 highest, then arranging them by descending count values. 
+
+#Separating monthyear into two variables (Month and Year)
+```{r}
+mean_ride2_df = citi_df |>
+  separate(monthyear, into = c("Month", "Year"), sep = "_")
+
+view(mean_ride2_df)
+```
+
+#Creating a plot to compare medians for weekdays, month, and year
+```{r}
+mean_ride2_df |> 
+  ggplot(aes(y = duration, x = Month)) + 
+  geom_boxplot(aes(color = weekdays), alpha = .5) +
+  facet_wrap(~Year)
+```
+The plot compares box plots across the days of the week for each month/year combination. For all months, the median ride duration was greatest on the weekend (saturday and sunday). The lowest  median ride durations for all months were on Monday and Tuesday. The median ride durations were greatest overall in July of 2020, and median ride durations were greater in July compared to January for both 2020 and 2024.  
+
+#Creating a plot to compare distributions for 2024 based on Bike Type, Rider Type, and Month
+```{r}
+mean_ride2_df|> 
+  filter(Year == 2024)|>
+    ggplot(aes(y = duration, x = rideable_type)) + 
+    geom_violin(aes(fill = member_casual), alpha = .50) +
+    facet_wrap(~Month) +
+  labs(x = "Bike Type", y = "Ride Duration", color = "Rider Type")
+```
+This chunk filtered the dataset from above (with separate variables for Month and Year) to only show observations for the year 2024. A violin plot was used to show the distribution of ride duration according to bike type, rider type, and month. There was a greater distribution for electric bike riders in July and a greater distribution for classic bike riders in January. Members had distributions that were greater than casual riders for electric bikes in January and nearly equal across the other bike type/ month combinations. 
 
