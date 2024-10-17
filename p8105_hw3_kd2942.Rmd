@@ -4,8 +4,7 @@ author: "Kaylin De Silva"
 date: 10-16-2024
 output: github_document
 ---
-**Problem 2**
-
+**Problem 1**
 #loading libraries
 ```{r}
 library(tidyverse)
@@ -13,6 +12,39 @@ library(dplyr)
 ```
 This chunk loads the tidyverse and dplyr libraries. 
 
+#loading and viewing dataset
+```{r}
+library(p8105.datasets)
+data("ny_noaa")
+```
+
+#
+```{r}
+ny_tidy = ny_noaa |>
+  separate(date, into = c("Year", "Month", "Day"), sep = "-")|>
+  mutate(
+    prcp = as.numeric(prcp),
+    snow = as.numeric(snow),
+    snwd = as.numeric(snwd),
+    tmax = as.numeric(tmax),
+    tmin = as.numeric(tmin)) 
+```
+
+```{r eval = FALSE}
+ny_plot = ny_tidy |>
+  filter(
+    Month %in% c("07", "01")) |>
+  drop_na(tmax) |>
+  group_by(id)
+
+ny_plot |>
+  ggplot(aes(x = Year, y = tmax)) + 
+  geom_point(aes(color = id), alpha = .05, size = .5) +
+  facet_wrap(~ Month)
+```
+I know this graph is not correct. The data set is very large and my R studio crashed several times trying to load it (I have an old computer). I was not able to chnage the data and view it to see how it changed, so I apologize for a large portion of this being missing. 
+
+**Problem 2**
 #loading and cleaning data set
 ```{r}
 accel_df = read_csv(file = "./nhanes_accel.csv")
